@@ -1,17 +1,3 @@
-# from fastapi import APIRouter, Depends
-
-# from app.database.db import get_db
-# from sqlalchemy.orm import Session
-
-# from app.services.recommendation_service import RecommendationService
-# from app.schemas.resume import RecommendationResponse
-
-
-# router = APIRouter()
-
-# @router.post("/{resume_id}", response_model=list[RecommendationResponse])
-# async def recommend_job(resume_id:int, db:Session = Depends(get_db)):
-#     return RecommendationService.generate(db, resume_id)
 from fastapi import APIRouter, Depends
 
 from app.database.db import get_db

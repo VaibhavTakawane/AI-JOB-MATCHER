@@ -23,8 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# client files
-api.js
 
 # environment variables
 .env

@@ -11,22 +11,22 @@ app = FastAPI(
     description="An AI-powered job matching platform that connects job seekers with their ideal career opportunities.",
 )
 
-# FRONTEND_URL = os.getenv(
-#     "FRONTEND_URL",
-#     "http://localhost:5173"
-# )
-
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173",
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        FRONTEND_URL,
         "http://localhost:5173",
-        "https://ai-job-matcher-7tkr.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(api_router)
 
 

@@ -4,3 +4,10 @@ alembic.ini
 uploads/
 
 .venv
+
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+!.env.example

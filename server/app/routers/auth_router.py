@@ -2,6 +2,8 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
+import os
+
 from app.core.deps import get_current_user
 from app.core.security import (
     create_access_token,
@@ -21,14 +23,16 @@ REFRESH_COOKIE_PATH = "/auth"  # cookie is only ever sent to /auth/* endpoints
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
+    is_production = os.getenv("RENDER") == "true"
+
     response.set_cookie(
         key=REFRESH_COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=False,  # NOTE: set True once you serve the app over HTTPS
+        secure=is_production,
         samesite="lax",
         path=REFRESH_COOKIE_PATH,
-        max_age=60 * 60 * 24 * 7,  # 7 days, keep in sync with REFRESH_TOKEN_EXPIRE_DAYS
+        max_age=60 * 60 * 24 * 7,
     )
 
 

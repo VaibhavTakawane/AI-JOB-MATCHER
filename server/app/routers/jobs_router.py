@@ -26,7 +26,15 @@ def search_job(resume_id: int, db: Session = Depends(get_db)):
             else "Software Developer"
             )
 
-    jobs = JobScraper.search(role)
+    # jobs = JobScraper.search(role)
+    try:
+        jobs = JobScraper.search(role)
+    except Exception as e:
+        print(f"JOB SEARCH ERROR: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Job search failed: {str(e)}"
+    )
     saved = JobService.save_jobs(db, jobs)
 
     return saved

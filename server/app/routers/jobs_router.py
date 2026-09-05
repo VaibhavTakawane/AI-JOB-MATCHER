@@ -13,28 +13,61 @@ router = APIRouter()
 
 
 # CHANGED
-@router.post("/search/{resume_id}", response_model=list[JobResponse])
-def search_job(resume_id: int, db: Session = Depends(get_db)):
-    analysis = (db.query(ResumeAnalysis).filter(
-        ResumeAnalysis.resume_id == resume_id).first())
+@router.post(
+    "/search/{resume_id}",
+    response_model=list[JobResponse]
+)
+def search_job(
+    resume_id: int,
+    db: Session = Depends(get_db)
+):
+    analysis = (
+        db.query(ResumeAnalysis)
+        .filter(
+            ResumeAnalysis.resume_id == resume_id
+        )
+        .first()
+    )
 
     if analysis is None:
-        raise HTTPException(status_code=404, detail="Resume not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Resume analysis not found"
+        )
 
-    role = (analysis.preferred_roles[0]
-            if analysis.preferred_roles and len(analysis.preferred_roles) > 0
-            else "Software Developer"
-            )
+    role = (
+        analysis.preferred_roles[0]
+        if analysis.preferred_roles
+        and len(analysis.preferred_roles) > 0
+        else "Software Developer"
+    )
 
-    # jobs = JobScraper.search(role)
+    print(f"Searching jobs for role: {role}")
+
     try:
         jobs = JobScraper.search(role)
+
     except Exception as e:
         print(f"JOB SEARCH ERROR: {e}")
+
         raise HTTPException(
             status_code=500,
             detail=f"Job search failed: {str(e)}"
+        )
+
+    print(
+        f"Jobs returned from scraper: {len(jobs)}"
     )
-    saved = JobService.save_jobs(db, jobs)
+
+    if not jobs:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No jobs found for role: {role}"
+        )
+
+    saved = JobService.save_jobs(
+        db,
+        jobs
+    )
 
     return saved

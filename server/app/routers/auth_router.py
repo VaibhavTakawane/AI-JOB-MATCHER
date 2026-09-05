@@ -30,7 +30,7 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         value=token,
         httponly=True,
         secure=is_production,
-        samesite="lax",
+        samesite="none" if is_production else "lax",
         path=REFRESH_COOKIE_PATH,
         max_age=60 * 60 * 24 * 7,
     )

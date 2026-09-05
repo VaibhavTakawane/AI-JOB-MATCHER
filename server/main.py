@@ -14,21 +14,19 @@ app = FastAPI(
 
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
-    "http://localhost:5173"
+    "http://localhost:5173",
 )
 
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    FRONTEND_URL,
-]
 
-# Remove duplicates
-ALLOWED_ORIGINS = list(dict.fromkeys(ALLOWED_ORIGINS))
+ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+    "http://localhost:5173",
+]
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS, 
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

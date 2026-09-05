@@ -99,121 +99,130 @@
 
 
 # -----------------------------------------------------------
-from playwright.sync_api import sync_playwright
+import requests
 
 
 class JobScraper:
 
+    API_URL = "https://remoteok.com/api"
+
     @staticmethod
     def search(role: str):
-        jobs = []
-
         try:
-            with sync_playwright() as p:
+            response = requests.get(
+                JobScraper.API_URL,
+                headers={
+                    "User-Agent": "AI-Job-Matcher/1.0"
+                },
+                timeout=30,
+            )
 
-                browser = p.chromium.launch(
-                    headless=True
-                )
+            response.raise_for_status()
 
-                page = browser.new_page()
+            data = response.json()
+
+            if not isinstance(data, list):
+                print("RemoteOK returned unexpected data")
+                return []
+
+            role_words = {
+                word.lower()
+                for word in role.split()
+                if len(word) > 2
+            }
+
+            jobs = []
+
+            for item in data:
+
+                if not isinstance(item, dict):
+                    continue
+
+                # Skip RemoteOK API metadata
+                if "position" not in item:
+                    continue
+
+                title = (
+                    item.get("position")
+                    or ""
+                ).strip()
+
+                company = (
+                    item.get("company")
+                    or ""
+                ).strip()
+
+                location = (
+                    item.get("location")
+                    or "Remote"
+                ).strip()
 
                 url = (
-                    f"https://remoteok.com/"
-                    f"remote-{role.replace(' ', '-')}-jobs"
-                )
+                    item.get("url")
+                    or ""
+                ).strip()
 
-                page.goto(
-                    url,
-                    wait_until="domcontentloaded",
-                    timeout=30000,
-                )
+                description = (
+                    item.get("description")
+                    or ""
+                ).strip()
 
-                try:
-                    page.wait_for_selector(
-                        "tr.job",
-                        timeout=10000,
+                salary_min = item.get("salary_min")
+                salary_max = item.get("salary_max")
+
+                if salary_min and salary_max:
+                    salary = f"${salary_min} - ${salary_max}"
+                elif salary_min:
+                    salary = f"From ${salary_min}"
+                elif salary_max:
+                    salary = f"Up to ${salary_max}"
+                else:
+                    salary = "Based on performance"
+
+                # Search title + tags + description
+                searchable_text = " ".join([
+                    title,
+                    str(item.get("tags") or ""),
+                    description,
+                ]).lower()
+
+                # Match role keywords
+                if role_words:
+                    matched = any(
+                        word in searchable_text
+                        for word in role_words
                     )
-                except Exception:
-                    print("No RemoteOK jobs found.")
-                    browser.close()
-                    return []
 
-                cards = page.locator("tr.job")
+                    if not matched:
+                        continue
 
-                count = min(cards.count(), 20)
+                jobs.append({
+                    "title": title,
+                    "company": company,
+                    "location": location,
+                    "url": url,
+                    "salary": salary,
+                    "description": description,
+                    "source": "RemoteOK",
+                })
 
-                for i in range(count):
-                    card = cards.nth(i)
+                if len(jobs) >= 20:
+                    break
 
-                    try:
-                        title = (
-                            card.locator("h2")
-                            .first
-                            .text_content()
-                            or ""
-                        ).strip()
+            print(
+                f"RemoteOK: found {len(jobs)} jobs "
+                f"for role '{role}'"
+            )
 
-                        company = (
-                            card.locator("h3")
-                            .first
-                            .text_content()
-                            or ""
-                        ).strip()
+            return jobs
 
-                        locations = [
-                            text.strip()
-                            for text in card
-                            .locator(".location")
-                            .all_text_contents()
-                            if text.strip()
-                        ]
-
-                        location = (
-                            locations[0]
-                            if locations
-                            else "Remote"
-                        )
-
-                        href = (
-                            card.get_attribute("data-href")
-                            or ""
-                        )
-
-                        salarys = [
-                            text.strip()
-                            for text in card
-                            .locator(".salary")
-                            .all_text_contents()
-                            if text.strip()
-                        ]
-
-                        salary = (
-                            salarys[0]
-                            if salarys
-                            else "Based on performance"
-                        )
-
-                        jobs.append({
-                            "title": title,
-                            "company": company,
-                            "location": location,
-                            "url": f"https://remoteok.com{href}",
-                            "salary": salary,
-                            "description": "",
-                            "source": "RemoteOK",
-                        })
-
-                    except Exception as e:
-                        print(
-                            f"Skipping job {i}: {e}"
-                        )
-
-                browser.close()
+        except requests.RequestException as e:
+            print(f"RemoteOK request failed: {e}")
+            return []
 
         except Exception as e:
             print(
-                f"Job scraper failed: {type(e).__name__}: {e}"
+                f"RemoteOK scraper failed: "
+                f"{type(e).__name__}: {e}"
             )
             return []
-
-        return jobs
